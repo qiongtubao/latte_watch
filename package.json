@@ -1,0 +1,16 @@
+
+{
+	"name": "latte_watch",
+	"version": "0.0.1",
+	"description": "latte_watch",
+	"keywords": ["latte","latte_watch"],
+	"author": "qiongtubao",
+	"main": "index.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/qiongtubao/latte_watch.git"
+	},
+  "dependencies": {
+    "fsevent":"*"
+  }
+}
