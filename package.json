@@ -6,11 +6,15 @@
 	"keywords": ["latte","latte_watch"],
 	"author": "qiongtubao",
 	"main": "index.js",
+	"bin": {
+		"watch": "bin/watch"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/qiongtubao/latte_watch.git"
 	},
   "dependencies": {
-    "chokidar":"*"
+    "chokidar":"*",
+    "latte_lib": "*"
   }
 }
