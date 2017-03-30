@@ -1,0 +1,110 @@
+#!/usr/bin/env node
+
+var Path = require("path");
+	var getConfig = function() {
+		var config;
+		var index = process.argv.indexOf("-c");
+		if(index != -1) {
+			config = process.argv[index+1];
+		}
+		config = config || ".latte/watch.json";
+		var buildConfigPath = Path.join(process.cwd()+"/"+config);
+		var buildConfig;
+		try {
+			buildConfig = require(buildConfigPath);
+		}catch(e) {
+			return null;
+		}
+		return buildConfig;
+	};
+		var spawn = require("child_process").spawn;
+		var Config2Function = function(command, config) {
+			return function(cb) {
+				var params = [command].concat(config.params || []);
+				config.optional = config.optional || {};
+				for(var i in config.optional) {
+					params.push(i);
+					params.push(config.optional[i]);
+				}
+				var child = spawn("latte",params);
+				console.log(params);
+				child.stdout.on('data', (data) => {
+				  	console.log(`stdout: ${data}`);
+				});
+
+				child.stderr.on('data', (data) => {
+				  	console.log(`stderr: ${data}`);
+				});
+				child.on("exit" , function(code,sig) {
+					console.log("进程", command, "结束",code, sig);
+					cb();
+				});
+			}
+		}
+		var latte_lib = require("latte_lib");
+	var Config2Change = function(config) {
+		var funcs = {};
+		console.log(config);
+		Object.keys(config).forEach(function(command) {
+			if(latte_lib.isArray(config[command])) {
+				funcs[command] = config[command].map(function(k) {
+					if(latte_lib.isString(k)) {
+						return k;
+					}else{
+						return Config2Function(command, k);
+					}
+				});
+			}else{
+				funcs[command] = Config2Function(command, config[command]);
+			}
+		});
+		
+		var lock = false;
+		return function() {
+			if(lock) {
+				return;
+			}
+			lock = true;
+			latte_lib.async.auto(funcs, function(err) {
+				lock = false;
+				if(err) {
+					console.log("执行异常", err);
+				}else{
+					console.log("执行进程结束");
+				}
+
+			});
+		};
+		
+	}
+	var latte_watch = require("../index.js");
+(function() {
+	var config = getConfig();
+	if(!config) {
+		return console.log("not find config");
+	}
+	var watchers = {};
+	config.change = config.change || {};
+	var changeEvent = Config2Change(config.change);
+	changeEvent();
+	config.paths.forEach(function(path) {
+		var watcher = latte_watch.create(path);
+		watcher.on("addDir", function(addDirName) {
+			changeEvent();
+		});
+		watcher.on("unlink", function() {
+			changeEvent();
+		});
+		watcher.on("unlinkDir", function() {
+			changeEvent();
+		});
+		watcher.on("add", function(filename) {
+			changeEvent();
+		});
+		watcher.on("change", function() {
+			changeEvent();
+		});	
+		watchers[path ] =watcher;
+	});
+})();
+
